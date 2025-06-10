@@ -1,0 +1,1347 @@
+// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
+import React, { useState, useEffect } from "react";
+import * as echarts from "echarts";
+const App: React.FC = () => {
+  const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+  // Sample data for claims
+  const claimsData: Claim[] = [
+    {
+      id: "CLM-2025-001",
+      patientName: "John Smith",
+      provider: "Memorial Hospital",
+      amount: 1250.75,
+      submissionDate: "2025-06-05",
+      status: "approved",
+      insuranceProvider: "Blue Cross",
+      claimType: "Medical",
+      description: "Emergency room visit for acute appendicitis",
+      processingTime: "24 hours",
+      assignedTo: "Sarah Johnson",
+    },
+    {
+      id: "CLM-2025-002",
+      patientName: "Emma Davis",
+      provider: "City Medical Center",
+      amount: 3450.5,
+      submissionDate: "2025-06-07",
+      status: "pending",
+      insuranceProvider: "Aetna",
+      claimType: "Surgical",
+      description: "Knee replacement surgery",
+      processingTime: "Pending",
+      assignedTo: "Michael Chen",
+    },
+    {
+      id: "CLM-2025-003",
+      patientName: "Robert Johnson",
+      provider: "Wellness Clinic",
+      amount: 780.25,
+      submissionDate: "2025-06-08",
+      status: "rejected",
+      insuranceProvider: "United Health",
+      claimType: "Diagnostic",
+      description: "MRI scan for lower back pain",
+      processingTime: "36 hours",
+      assignedTo: "Jessica Taylor",
+    },
+    {
+      id: "CLM-2025-004",
+      patientName: "Maria Garcia",
+      provider: "Family Health Practice",
+      amount: 550.0,
+      submissionDate: "2025-06-09",
+      status: "approved",
+      insuranceProvider: "Cigna",
+      claimType: "Preventive",
+      description: "Annual physical examination",
+      processingTime: "18 hours",
+      assignedTo: "David Wilson",
+    },
+    {
+      id: "CLM-2025-005",
+      patientName: "James Wilson",
+      provider: "Orthopedic Specialists",
+      amount: 2100.75,
+      submissionDate: "2025-06-08",
+      status: "pending",
+      insuranceProvider: "Medicare",
+      claimType: "Rehabilitation",
+      description: "Physical therapy for shoulder injury",
+      processingTime: "Pending",
+      assignedTo: "Sarah Johnson",
+    },
+    {
+      id: "CLM-2025-006",
+      patientName: "Linda Brown",
+      provider: "Dental Associates",
+      amount: 875.5,
+      submissionDate: "2025-06-07",
+      status: "approved",
+      insuranceProvider: "Delta Dental",
+      claimType: "Dental",
+      description: "Root canal and crown",
+      processingTime: "22 hours",
+      assignedTo: "Michael Chen",
+    },
+    {
+      id: "CLM-2025-007",
+      patientName: "Thomas Lee",
+      provider: "Vision Care Center",
+      amount: 325.0,
+      submissionDate: "2025-06-06",
+      status: "rejected",
+      insuranceProvider: "VSP",
+      claimType: "Vision",
+      description: "Annual eye exam and prescription glasses",
+      processingTime: "30 hours",
+      assignedTo: "Jessica Taylor",
+    },
+    {
+      id: "CLM-2025-008",
+      patientName: "Susan Miller",
+      provider: "Women's Health Clinic",
+      amount: 1150.25,
+      submissionDate: "2025-06-05",
+      status: "pending",
+      insuranceProvider: "Humana",
+      claimType: "Gynecological",
+      description: "Annual gynecological exam and tests",
+      processingTime: "Pending",
+      assignedTo: "David Wilson",
+    },
+    {
+      id: "CLM-2025-009",
+      patientName: "Michael Taylor",
+      provider: "Cardiology Institute",
+      amount: 4250.0,
+      submissionDate: "2025-06-04",
+      status: "approved",
+      insuranceProvider: "Blue Cross",
+      claimType: "Cardiac",
+      description: "Stress test and echocardiogram",
+      processingTime: "20 hours",
+      assignedTo: "Sarah Johnson",
+    },
+    {
+      id: "CLM-2025-010",
+      patientName: "Jennifer Adams",
+      provider: "Pediatric Center",
+      amount: 450.75,
+      submissionDate: "2025-06-03",
+      status: "rejected",
+      insuranceProvider: "Aetna",
+      claimType: "Pediatric",
+      description: "Well-child visit and vaccinations",
+      processingTime: "28 hours",
+      assignedTo: "Michael Chen",
+    },
+    {
+      id: "CLM-2025-011",
+      patientName: "William Harris",
+      provider: "Urgent Care Clinic",
+      amount: 675.5,
+      submissionDate: "2025-06-02",
+      status: "pending",
+      insuranceProvider: "United Health",
+      claimType: "Urgent Care",
+      description: "Treatment for severe flu symptoms",
+      processingTime: "Pending",
+      assignedTo: "Jessica Taylor",
+    },
+    {
+      id: "CLM-2025-012",
+      patientName: "Patricia Martinez",
+      provider: "Dermatology Specialists",
+      amount: 925.25,
+      submissionDate: "2025-06-01",
+      status: "approved",
+      insuranceProvider: "Cigna",
+      claimType: "Dermatological",
+      description: "Skin biopsy and treatment",
+      processingTime: "26 hours",
+      assignedTo: "David Wilson",
+    },
+  ];
+  // Filter claims based on search query and status filter
+  const filteredClaims = claimsData.filter((claim) => {
+    const matchesSearch =
+      claim.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      claim.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      claim.provider.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus =
+      filterStatus === "all" || claim.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
+  // Pagination
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentClaims = filteredClaims.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredClaims.length / itemsPerPage);
+  // Initialize charts
+  useEffect(() => {
+    // Daily claims chart
+    const dailyClaimsChart = echarts.init(
+      document.getElementById("daily-claims-chart"),
+    );
+    const dailyClaimsOption = {
+      animation: false,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: {
+          type: "shadow",
+        },
+      },
+      grid: {
+        left: "3%",
+        right: "4%",
+        bottom: "3%",
+        containLabel: true,
+      },
+      xAxis: {
+        type: "category",
+        data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        axisTick: {
+          alignWithLabel: true,
+        },
+      },
+      yAxis: {
+        type: "value",
+      },
+      series: [
+        {
+          name: "Claims Processed",
+          type: "bar",
+          barWidth: "60%",
+          data: [45, 52, 49, 60, 72, 35, 20],
+          itemStyle: {
+            color: "#4F46E5",
+          },
+        },
+      ],
+    };
+    dailyClaimsChart.setOption(dailyClaimsOption);
+    // Claims status chart
+    const claimsStatusChart = echarts.init(
+      document.getElementById("claims-status-chart"),
+    );
+    const claimsStatusOption = {
+      animation: false,
+      tooltip: {
+        trigger: "item",
+      },
+      legend: {
+        top: "5%",
+        left: "center",
+      },
+      series: [
+        {
+          name: "Claims Status",
+          type: "pie",
+          radius: ["40%", "70%"],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 10,
+            borderColor: "#fff",
+            borderWidth: 2,
+          },
+          label: {
+            show: false,
+            position: "center",
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: 16,
+              fontWeight: "bold",
+            },
+          },
+          labelLine: {
+            show: false,
+          },
+          data: [
+            { value: 65, name: "Approved", itemStyle: { color: "#10B981" } },
+            { value: 20, name: "Pending", itemStyle: { color: "#F59E0B" } },
+            { value: 15, name: "Rejected", itemStyle: { color: "#EF4444" } },
+          ],
+        },
+      ],
+    };
+    claimsStatusChart.setOption(claimsStatusOption);
+    // Processing time chart
+    const processingTimeChart = echarts.init(
+      document.getElementById("processing-time-chart"),
+    );
+    const processingTimeOption = {
+      animation: false,
+      tooltip: {
+        trigger: "axis",
+      },
+      xAxis: {
+        type: "category",
+        data: ["Week 1", "Week 2", "Week 3", "Week 4"],
+      },
+      yAxis: {
+        type: "value",
+        axisLabel: {
+          formatter: "{value} hrs",
+        },
+      },
+      series: [
+        {
+          data: [28, 24, 20, 18],
+          type: "line",
+          smooth: true,
+          lineStyle: {
+            color: "#4F46E5",
+            width: 3,
+          },
+          symbol: "circle",
+          symbolSize: 8,
+          itemStyle: {
+            color: "#4F46E5",
+          },
+        },
+      ],
+    };
+    processingTimeChart.setOption(processingTimeOption);
+    // Resize charts on window resize
+    const handleResize = () => {
+      dailyClaimsChart.resize();
+      claimsStatusChart.resize();
+      processingTimeChart.resize();
+    };
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      dailyClaimsChart.dispose();
+      claimsStatusChart.dispose();
+      processingTimeChart.dispose();
+    };
+  }, []);
+  // Handle claim selection
+  const handleClaimSelect = (claim: Claim) => {
+    setSelectedClaim(claim);
+  };
+  // Handle status filter change
+  const handleStatusFilterChange = (status: string) => {
+    setFilterStatus(status);
+    setCurrentPage(1);
+  };
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
+  // Handle pagination
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm fixed top-0 left-0 right-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 flex items-center">
+                <img
+                  className="h-8 w-auto"
+                  src="https://readdy.ai/api/search-image?query=A%20modern%2C%20minimalist%20healthcare%20logo%20with%20a%20blue%20and%20teal%20color%20scheme%2C%20featuring%20a%20stylized%20medical%20cross%20or%20caduceus%20symbol%20integrated%20with%20a%20shield%20or%20protective%20element%2C%20suitable%20for%20a%20healthcare%20claims%20management%20system&width=200&height=80&seq=logo1&orientation=landscape"
+                  alt="Healthcare Claims Management"
+                />
+                <span className="ml-2 text-lg font-semibold text-gray-900">
+                  ClaimsPro
+                </span>
+              </div>
+              <nav className="ml-6 flex space-x-8">
+                <a
+                  href="#"
+                  className="border-b-2 border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 text-sm font-medium"
+                >
+                  Dashboard
+                </a>
+                <a
+                  href="https://readdy.ai/home/05c949dc-8c27-4326-acdb-c32485d3bc67/55e4f658-5d14-4dcd-bd63-ca1bbc2dfe9c"
+                  data-readdy="true"
+                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium cursor-pointer"
+                >
+                  Claims
+                </a>
+                <a
+                  href="#"
+                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium cursor-pointer"
+                >
+                  Reports
+                </a>
+                <a
+                  href="#"
+                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium cursor-pointer"
+                >
+                  Settings
+                </a>
+              </nav>
+            </div>
+            <div className="flex items-center">
+              <div className="w-full max-w-lg lg:max-w-xs relative">
+                <label htmlFor="search" className="sr-only">
+                  Search
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i className="fas fa-search text-gray-400 text-sm"></i>
+                  </div>
+                  <input
+                    id="search"
+                    name="search"
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="Search claims, patients..."
+                    type="search"
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                  />
+                </div>
+              </div>
+              <div className="ml-4 flex items-center md:ml-6">
+                {/* Notifications dropdown */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+                    onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                  >
+                    <span className="sr-only">View notifications</span>
+                    <i className="fas fa-bell"></i>
+                    <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500"></span>
+                  </button>
+                  {isNotificationsOpen && (
+                    <div className="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <h3 className="text-sm font-medium text-gray-900">
+                          Notifications
+                        </h3>
+                      </div>
+                      <div className="max-h-60 overflow-y-auto">
+                        <a
+                          href="#"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                        >
+                          <p className="font-medium">New claim submitted</p>
+                          <p className="text-xs text-gray-500">
+                            Patient: Emma Davis - 10 minutes ago
+                          </p>
+                        </a>
+                        <a
+                          href="#"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                        >
+                          <p className="font-medium">Claim approved</p>
+                          <p className="text-xs text-gray-500">
+                            Claim ID: CLM-2025-001 - 1 hour ago
+                          </p>
+                        </a>
+                        <a
+                          href="#"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                        >
+                          <p className="font-medium">Claim rejected</p>
+                          <p className="text-xs text-gray-500">
+                            Claim ID: CLM-2025-003 - 2 hours ago
+                          </p>
+                        </a>
+                      </div>
+                      <div className="px-4 py-2 border-t border-gray-100 text-center">
+                        <a
+                          href="#"
+                          className="text-xs text-indigo-600 hover:text-indigo-500 cursor-pointer"
+                        >
+                          View all notifications
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Profile dropdown */}
+                <div className="ml-3 relative">
+                  <div>
+                    <button
+                      type="button"
+                      className="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+                      onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    >
+                      <span className="sr-only">Open user menu</span>
+                      <img
+                        className="h-8 w-8 rounded-full"
+                        src="https://readdy.ai/api/search-image?query=Professional%20headshot%20of%20a%20healthcare%20administrator%2C%20business%20professional%20with%20a%20friendly%20expression%2C%20wearing%20business%20attire%2C%20neutral%20background%2C%20high%20quality%20portrait&width=100&height=100&seq=user1&orientation=squarish"
+                        alt="User profile"
+                      />
+                    </button>
+                  </div>
+                  {isUserMenuOpen && (
+                    <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+                      <a
+                        href="#"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                      >
+                        Your Profile
+                      </a>
+                      <a
+                        href="#"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                      >
+                        Settings
+                      </a>
+                      <a
+                        href="#"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                      >
+                        Sign out
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main className="pt-16 pb-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Dashboard Header */}
+          <div className="py-6">
+            <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Overview of claims processing performance and statistics.
+            </p>
+          </div>
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Total Claims Card */}
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 bg-indigo-500 rounded-md p-3">
+                    <i className="fas fa-file-medical text-white"></i>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">
+                        Total Claims Processed
+                      </dt>
+                      <dd>
+                        <div className="text-lg font-medium text-gray-900">
+                          1,284
+                        </div>
+                      </dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-4 sm:px-6">
+                <div className="text-sm">
+                  <a
+                    href="#"
+                    className="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer"
+                  >
+                    View all claims <span aria-hidden="true">&rarr;</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+            {/* Processing Time Card */}
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
+                    <i className="fas fa-clock text-white"></i>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">
+                        Processing Time Average
+                      </dt>
+                      <dd>
+                        <div className="text-lg font-medium text-gray-900">
+                          18.5 hours
+                        </div>
+                      </dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-4 sm:px-6">
+                <div className="text-sm">
+                  <a
+                    href="#"
+                    className="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer"
+                  >
+                    View processing metrics{" "}
+                    <span aria-hidden="true">&rarr;</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+            {/* Success Rate Card */}
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 bg-blue-500 rounded-md p-3">
+                    <i className="fas fa-check-circle text-white"></i>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">
+                        Success Rate
+                      </dt>
+                      <dd>
+                        <div className="text-lg font-medium text-gray-900">
+                          92.7%
+                        </div>
+                      </dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-4 sm:px-6">
+                <div className="text-sm">
+                  <a
+                    href="#"
+                    className="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer"
+                  >
+                    View success metrics <span aria-hidden="true">&rarr;</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+            {/* Pending Claims Card */}
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 bg-yellow-500 rounded-md p-3">
+                    <i className="fas fa-hourglass-half text-white"></i>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">
+                        Pending Claims
+                      </dt>
+                      <dd>
+                        <div className="text-lg font-medium text-gray-900">
+                          48
+                        </div>
+                      </dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-4 sm:px-6">
+                <div className="text-sm">
+                  <a
+                    href="#"
+                    className="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer"
+                  >
+                    View pending claims <span aria-hidden="true">&rarr;</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Charts Section */}
+          <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Daily Claims Chart */}
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  Daily Claims Processed
+                </h3>
+                <div className="mt-4 h-64" id="daily-claims-chart"></div>
+              </div>
+            </div>
+            {/* Claims Status Chart */}
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  Claims by Status
+                </h3>
+                <div className="mt-4 h-64" id="claims-status-chart"></div>
+              </div>
+            </div>
+            {/* Processing Time Chart */}
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  Processing Time Trend
+                </h3>
+                <div className="mt-4 h-64" id="processing-time-chart"></div>
+              </div>
+            </div>
+          </div>
+          {/* Claims Management Section */}
+          <div className="mt-8">
+            <div className="bg-white shadow rounded-lg overflow-hidden">
+              <div className="px-4 py-5 border-b border-gray-200 sm:px-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Claims Management
+                  </h3>
+                  <div className="flex space-x-3">
+                    <button
+                      type="button"
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+                    >
+                      <i className="fas fa-plus mr-2"></i>
+                      New Claim
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+                    >
+                      <i className="fas fa-file-upload mr-2"></i>
+                      Batch Upload
+                    </button>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      >
+                        <i className="fas fa-filter mr-2"></i>
+                        Filter
+                        <i className="fas fa-chevron-down ml-2"></i>
+                      </button>
+                      {isDropdownOpen && (
+                        <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                          <div
+                            className="py-1"
+                            role="menu"
+                            aria-orientation="vertical"
+                          >
+                            <button
+                              className={`${filterStatus === "all" ? "bg-gray-100 text-gray-900" : "text-gray-700"} block px-4 py-2 text-sm w-full text-left hover:bg-gray-100 cursor-pointer`}
+                              onClick={() => handleStatusFilterChange("all")}
+                            >
+                              All Claims
+                            </button>
+                            <button
+                              className={`${filterStatus === "approved" ? "bg-gray-100 text-gray-900" : "text-gray-700"} block px-4 py-2 text-sm w-full text-left hover:bg-gray-100 cursor-pointer`}
+                              onClick={() =>
+                                handleStatusFilterChange("approved")
+                              }
+                            >
+                              Approved
+                            </button>
+                            <button
+                              className={`${filterStatus === "pending" ? "bg-gray-100 text-gray-900" : "text-gray-700"} block px-4 py-2 text-sm w-full text-left hover:bg-gray-100 cursor-pointer`}
+                              onClick={() =>
+                                handleStatusFilterChange("pending")
+                              }
+                            >
+                              Pending
+                            </button>
+                            <button
+                              className={`${filterStatus === "rejected" ? "bg-gray-100 text-gray-900" : "text-gray-700"} block px-4 py-2 text-sm w-full text-left hover:bg-gray-100 cursor-pointer`}
+                              onClick={() =>
+                                handleStatusFilterChange("rejected")
+                              }
+                            >
+                              Rejected
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Two-panel layout */}
+              <div className="flex flex-col lg:flex-row">
+                {/* Left panel: Claims list */}
+                <div className="w-full lg:w-1/2 border-r border-gray-200">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Claim ID
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Patient
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Amount
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Status
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {currentClaims.length > 0 ? (
+                          currentClaims.map((claim) => (
+                            <tr
+                              key={claim.id}
+                              className={`hover:bg-gray-50 cursor-pointer ${selectedClaim?.id === claim.id ? "bg-indigo-50" : ""}`}
+                              onClick={() => handleClaimSelect(claim)}
+                            >
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {claim.id}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {claim.patientName}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                ${claim.amount.toFixed(2)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span
+                                  className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+${
+  claim.status === "approved"
+    ? "bg-green-100 text-green-800"
+    : claim.status === "pending"
+      ? "bg-yellow-100 text-yellow-800"
+      : "bg-red-100 text-red-800"
+}`}
+                                >
+                                  {claim.status.charAt(0).toUpperCase() +
+                                    claim.status.slice(1)}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan={4}
+                              className="px-6 py-4 text-center text-sm text-gray-500"
+                            >
+                              No claims found matching your criteria.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* Pagination */}
+                  {filteredClaims.length > 0 && (
+                    <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                      <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-sm text-gray-700">
+                            Showing{" "}
+                            <span className="font-medium">
+                              {indexOfFirstItem + 1}
+                            </span>{" "}
+                            to{" "}
+                            <span className="font-medium">
+                              {indexOfLastItem > filteredClaims.length
+                                ? filteredClaims.length
+                                : indexOfLastItem}
+                            </span>{" "}
+                            of{" "}
+                            <span className="font-medium">
+                              {filteredClaims.length}
+                            </span>{" "}
+                            results
+                          </p>
+                        </div>
+                        <div>
+                          <nav
+                            className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                            aria-label="Pagination"
+                          >
+                            <button
+                              onClick={() => handlePageChange(currentPage - 1)}
+                              disabled={currentPage === 1}
+                              className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+                                currentPage === 1
+                                  ? "text-gray-300 cursor-not-allowed"
+                                  : "text-gray-500 hover:bg-gray-50 cursor-pointer"
+                              } !rounded-button whitespace-nowrap`}
+                            >
+                              <span className="sr-only">Previous</span>
+                              <i className="fas fa-chevron-left"></i>
+                            </button>
+                            {Array.from(
+                              { length: totalPages },
+                              (_, i) => i + 1,
+                            ).map((page) => (
+                              <button
+                                key={page}
+                                onClick={() => handlePageChange(page)}
+                                className={`relative inline-flex items-center px-4 py-2 border ${
+                                  currentPage === page
+                                    ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
+                                    : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                                } text-sm font-medium cursor-pointer !rounded-button whitespace-nowrap`}
+                              >
+                                {page}
+                              </button>
+                            ))}
+                            <button
+                              onClick={() => handlePageChange(currentPage + 1)}
+                              disabled={currentPage === totalPages}
+                              className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+                                currentPage === totalPages
+                                  ? "text-gray-300 cursor-not-allowed"
+                                  : "text-gray-500 hover:bg-gray-50 cursor-pointer"
+                              } !rounded-button whitespace-nowrap`}
+                            >
+                              <span className="sr-only">Next</span>
+                              <i className="fas fa-chevron-right"></i>
+                            </button>
+                          </nav>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Right panel: Claim details */}
+                <div className="w-full lg:w-1/2 p-6">
+                  {selectedClaim ? (
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <h3 className="text-lg leading-6 font-medium text-gray-900">
+                          Claim Details
+                        </h3>
+                        <div className="flex space-x-2">
+                          <button
+                            type="button"
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 !rounded-button whitespace-nowrap cursor-pointer"
+                          >
+                            <i className="fas fa-check mr-1"></i>
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 !rounded-button whitespace-nowrap cursor-pointer"
+                          >
+                            <i className="fas fa-times mr-1"></i>
+                            Reject
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+                          >
+                            <i className="fas fa-flag mr-1"></i>
+                            Flag
+                          </button>
+                        </div>
+                      </div>
+                      <div className="mt-5 border-t border-gray-200">
+                        <dl className="divide-y divide-gray-200">
+                          <div className="py-4 grid grid-cols-3 gap-4">
+                            <dt className="text-sm font-medium text-gray-500">
+                              Claim ID
+                            </dt>
+                            <dd className="text-sm text-gray-900 col-span-2">
+                              {selectedClaim.id}
+                            </dd>
+                          </div>
+                          <div className="py-4 grid grid-cols-3 gap-4">
+                            <dt className="text-sm font-medium text-gray-500">
+                              Patient Name
+                            </dt>
+                            <dd className="text-sm text-gray-900 col-span-2">
+                              {selectedClaim.patientName}
+                            </dd>
+                          </div>
+                          <div className="py-4 grid grid-cols-3 gap-4">
+                            <dt className="text-sm font-medium text-gray-500">
+                              Provider
+                            </dt>
+                            <dd className="text-sm text-gray-900 col-span-2">
+                              {selectedClaim.provider}
+                            </dd>
+                          </div>
+                          <div className="py-4 grid grid-cols-3 gap-4">
+                            <dt className="text-sm font-medium text-gray-500">
+                              Insurance Provider
+                            </dt>
+                            <dd className="text-sm text-gray-900 col-span-2">
+                              {selectedClaim.insuranceProvider}
+                            </dd>
+                          </div>
+                          <div className="py-4 grid grid-cols-3 gap-4">
+                            <dt className="text-sm font-medium text-gray-500">
+                              Claim Type
+                            </dt>
+                            <dd className="text-sm text-gray-900 col-span-2">
+                              {selectedClaim.claimType}
+                            </dd>
+                          </div>
+                          <div className="py-4 grid grid-cols-3 gap-4">
+                            <dt className="text-sm font-medium text-gray-500">
+                              Amount
+                            </dt>
+                            <dd className="text-sm text-gray-900 col-span-2">
+                              ${selectedClaim.amount.toFixed(2)}
+                            </dd>
+                          </div>
+                          <div className="py-4 grid grid-cols-3 gap-4">
+                            <dt className="text-sm font-medium text-gray-500">
+                              Submission Date
+                            </dt>
+                            <dd className="text-sm text-gray-900 col-span-2">
+                              {selectedClaim.submissionDate}
+                            </dd>
+                          </div>
+                          <div className="py-4 grid grid-cols-3 gap-4">
+                            <dt className="text-sm font-medium text-gray-500">
+                              Status
+                            </dt>
+                            <dd className="text-sm text-gray-900 col-span-2">
+                              <span
+                                className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+${
+  selectedClaim.status === "approved"
+    ? "bg-green-100 text-green-800"
+    : selectedClaim.status === "pending"
+      ? "bg-yellow-100 text-yellow-800"
+      : "bg-red-100 text-red-800"
+}`}
+                              >
+                                {selectedClaim.status.charAt(0).toUpperCase() +
+                                  selectedClaim.status.slice(1)}
+                              </span>
+                            </dd>
+                          </div>
+                          <div className="py-4 grid grid-cols-3 gap-4">
+                            <dt className="text-sm font-medium text-gray-500">
+                              Processing Time
+                            </dt>
+                            <dd className="text-sm text-gray-900 col-span-2">
+                              {selectedClaim.processingTime}
+                            </dd>
+                          </div>
+                          <div className="py-4 grid grid-cols-3 gap-4">
+                            <dt className="text-sm font-medium text-gray-500">
+                              Assigned To
+                            </dt>
+                            <dd className="text-sm text-gray-900 col-span-2">
+                              {selectedClaim.assignedTo}
+                            </dd>
+                          </div>
+                          <div className="py-4 grid grid-cols-3 gap-4">
+                            <dt className="text-sm font-medium text-gray-500">
+                              Description
+                            </dt>
+                            <dd className="text-sm text-gray-900 col-span-2">
+                              {selectedClaim.description}
+                            </dd>
+                          </div>
+                        </dl>
+                      </div>
+                      {/* Audit Trail */}
+                      <div className="mt-6">
+                        <h4 className="text-sm font-medium text-gray-900">
+                          Audit Trail
+                        </h4>
+                        <div className="mt-2 flow-root">
+                          <ul className="divide-y divide-gray-200">
+                            <li className="py-3">
+                              <div className="flex items-center space-x-4">
+                                <div className="flex-shrink-0">
+                                  <span className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                                    <i className="fas fa-check text-green-600"></i>
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    Claim submitted
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    {selectedClaim.submissionDate} by{" "}
+                                    {selectedClaim.patientName}
+                                  </p>
+                                </div>
+                              </div>
+                            </li>
+                            <li className="py-3">
+                              <div className="flex items-center space-x-4">
+                                <div className="flex-shrink-0">
+                                  <span className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <i className="fas fa-user-check text-blue-600"></i>
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    Assigned to {selectedClaim.assignedTo}
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    {selectedClaim.submissionDate} by System
+                                  </p>
+                                </div>
+                              </div>
+                            </li>
+                            {selectedClaim.status === "approved" && (
+                              <li className="py-3">
+                                <div className="flex items-center space-x-4">
+                                  <div className="flex-shrink-0">
+                                    <span className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                                      <i className="fas fa-check-circle text-green-600"></i>
+                                    </span>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 truncate">
+                                      Claim approved
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                      {selectedClaim.submissionDate} by{" "}
+                                      {selectedClaim.assignedTo}
+                                    </p>
+                                  </div>
+                                </div>
+                              </li>
+                            )}
+                            {selectedClaim.status === "rejected" && (
+                              <li className="py-3">
+                                <div className="flex items-center space-x-4">
+                                  <div className="flex-shrink-0">
+                                    <span className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
+                                      <i className="fas fa-times-circle text-red-600"></i>
+                                    </span>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 truncate">
+                                      Claim rejected
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                      {selectedClaim.submissionDate} by{" "}
+                                      {selectedClaim.assignedTo}
+                                    </p>
+                                  </div>
+                                </div>
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <i className="fas fa-file-medical text-gray-400 text-5xl mb-4"></i>
+                      <h3 className="text-lg font-medium text-gray-900">
+                        No claim selected
+                      </h3>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Select a claim from the list to view details
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* System Status Section */}
+          <div className="mt-8">
+            <div className="bg-white shadow rounded-lg overflow-hidden">
+              <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  System Status
+                </h3>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <span className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                          <i className="fas fa-server text-green-600"></i>
+                        </span>
+                      </div>
+                      <div className="ml-4">
+                        <h4 className="text-sm font-medium text-gray-900">
+                          GCP Cloud Run
+                        </h4>
+                        <p className="text-sm text-green-600">Operational</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <span className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                          <i className="fas fa-database text-green-600"></i>
+                        </span>
+                      </div>
+                      <div className="ml-4">
+                        <h4 className="text-sm font-medium text-gray-900">
+                          Cloud SQL
+                        </h4>
+                        <p className="text-sm text-green-600">Operational</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <span className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                          <i className="fas fa-exchange-alt text-yellow-600"></i>
+                        </span>
+                      </div>
+                      <div className="ml-4">
+                        <h4 className="text-sm font-medium text-gray-900">
+                          API Gateway
+                        </h4>
+                        <p className="text-sm text-yellow-600">
+                          Degraded Performance
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <span className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                          <i className="fas fa-shield-alt text-green-600"></i>
+                        </span>
+                      </div>
+                      <div className="ml-4">
+                        <h4 className="text-sm font-medium text-gray-900">
+                          Security
+                        </h4>
+                        <p className="text-sm text-green-600">
+                          All Systems Normal
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">
+                    Batch Processing Status
+                  </h4>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-medium text-gray-900">
+                          Morning Batch (06:00 AM)
+                        </div>
+                        <div className="text-sm text-gray-500">Completed</div>
+                      </div>
+                      <div className="mt-1 relative">
+                        <div className="overflow-hidden h-2 text-xs flex rounded bg-gray-200">
+                          <div className="w-full bg-green-500 rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-medium text-gray-900">
+                          Afternoon Batch (12:00 PM)
+                        </div>
+                        <div className="text-sm text-gray-500">Completed</div>
+                      </div>
+                      <div className="mt-1 relative">
+                        <div className="overflow-hidden h-2 text-xs flex rounded bg-gray-200">
+                          <div className="w-full bg-green-500 rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-medium text-gray-900">
+                          Evening Batch (06:00 PM)
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          75% Complete
+                        </div>
+                      </div>
+                      <div className="mt-1 relative">
+                        <div className="overflow-hidden h-2 text-xs flex rounded bg-gray-200">
+                          <div
+                            style={{ width: "75%" }}
+                            className="bg-blue-500 rounded"
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+      {/* Footer */}
+      <footer className="bg-white">
+        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 border-t border-gray-200">
+          <div className="md:flex md:items-center md:justify-between">
+            <div className="flex space-x-6 md:order-2">
+              <a
+                href="#"
+                className="text-gray-400 hover:text-gray-500 cursor-pointer"
+              >
+                <span className="sr-only">Documentation</span>
+                <i className="fas fa-book"></i>
+              </a>
+              <a
+                href="#"
+                className="text-gray-400 hover:text-gray-500 cursor-pointer"
+              >
+                <span className="sr-only">Support</span>
+                <i className="fas fa-question-circle"></i>
+              </a>
+              <a
+                href="#"
+                className="text-gray-400 hover:text-gray-500 cursor-pointer"
+              >
+                <span className="sr-only">GitHub</span>
+                <i className="fab fa-github"></i>
+              </a>
+            </div>
+            <div className="mt-8 md:mt-0 md:order-1">
+              <div className="flex items-center">
+                <p className="text-sm text-gray-500">
+                  &copy; 2025 Healthcare Claims Management System. All rights
+                  reserved.
+                </p>
+                <p className="ml-6 text-sm text-gray-500">
+                  <i className="fas fa-sync-alt mr-1"></i> Last synced: June 10,
+                  2025 14:32
+                </p>
+                <p className="ml-6 text-sm text-gray-500">
+                  <i className="fas fa-code-branch mr-1"></i> Version 2.4.1
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
+// Types
+interface Claim {
+  id: string;
+  patientName: string;
+  provider: string;
+  amount: number;
+  submissionDate: string;
+  status: "approved" | "pending" | "rejected";
+  insuranceProvider: string;
+  claimType: string;
+  description: string;
+  processingTime: string;
+  assignedTo: string;
+}
+export default App;
