@@ -1,0 +1,1775 @@
+// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
+import React, { useState, useEffect } from "react";
+import * as echarts from "echarts";
+const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState("overview");
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
+    start: "2025-05-01",
+    end: "2025-06-10",
+  });
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
+  const [selectedReportTemplate, setSelectedReportTemplate] =
+    useState("claims-summary");
+  const [selectedExportFormat, setSelectedExportFormat] = useState("pdf");
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterType, setFilterType] = useState("all");
+  const [filterProvider, setFilterProvider] = useState("all");
+  // Initialize charts when component mounts
+  useEffect(() => {
+    initCharts();
+    // Clean up charts when component unmounts
+    return () => {
+      const charts = document.querySelectorAll(".chart-container");
+      charts.forEach((chart) => {
+        const instance = echarts.getInstanceByDom(chart as HTMLElement);
+        if (instance) {
+          echarts.dispose(instance);
+        }
+      });
+    };
+  }, [activeTab, dateRange]);
+  // Initialize all charts
+  const initCharts = () => {
+    if (activeTab === "overview") {
+      initStatusChart();
+      initTrendChart();
+      initAmountChart();
+      initProcessingTimeChart();
+    }
+  };
+  // Initialize status distribution chart
+  const initStatusChart = () => {
+    const chartDom = document.getElementById("status-chart");
+    if (!chartDom) return;
+    const myChart = echarts.init(chartDom);
+    const option = {
+      animation: false,
+      tooltip: {
+        trigger: "item",
+        formatter: "{a} <br/>{b}: {c} ({d}%)",
+      },
+      legend: {
+        orient: "horizontal",
+        bottom: 0,
+        data: ["Approved", "Pending", "Rejected"],
+      },
+      color: ["#10B981", "#F59E0B", "#EF4444"],
+      series: [
+        {
+          name: "Claims Status",
+          type: "pie",
+          radius: ["50%", "70%"],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 10,
+            borderColor: "#fff",
+            borderWidth: 2,
+          },
+          label: {
+            show: false,
+            position: "center",
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: "18",
+              fontWeight: "bold",
+            },
+          },
+          labelLine: {
+            show: false,
+          },
+          data: [
+            { value: 485, name: "Approved" },
+            { value: 210, name: "Pending" },
+            { value: 105, name: "Rejected" },
+          ],
+        },
+      ],
+    };
+    option && myChart.setOption(option);
+  };
+  // Initialize claims trend chart
+  const initTrendChart = () => {
+    const chartDom = document.getElementById("trend-chart");
+    if (!chartDom) return;
+    const myChart = echarts.init(chartDom);
+    const option = {
+      animation: false,
+      tooltip: {
+        trigger: "axis",
+      },
+      legend: {
+        data: ["Total Claims", "Approved", "Pending", "Rejected"],
+        bottom: 0,
+      },
+      grid: {
+        left: "3%",
+        right: "4%",
+        bottom: "15%",
+        top: "3%",
+        containLabel: true,
+      },
+      xAxis: {
+        type: "category",
+        boundaryGap: false,
+        data: [
+          "May 1",
+          "May 8",
+          "May 15",
+          "May 22",
+          "May 29",
+          "Jun 5",
+          "Jun 10",
+        ],
+      },
+      yAxis: {
+        type: "value",
+      },
+      series: [
+        {
+          name: "Total Claims",
+          type: "line",
+          stack: "Total",
+          data: [120, 132, 101, 134, 90, 230, 210],
+          smooth: true,
+          lineStyle: {
+            width: 3,
+            color: "#6366F1",
+          },
+          itemStyle: {
+            color: "#6366F1",
+          },
+        },
+        {
+          name: "Approved",
+          type: "line",
+          stack: "Status",
+          data: [80, 92, 71, 84, 50, 130, 110],
+          smooth: true,
+          lineStyle: {
+            width: 2,
+            color: "#10B981",
+          },
+          itemStyle: {
+            color: "#10B981",
+          },
+        },
+        {
+          name: "Pending",
+          type: "line",
+          stack: "Status",
+          data: [30, 32, 21, 34, 30, 70, 80],
+          smooth: true,
+          lineStyle: {
+            width: 2,
+            color: "#F59E0B",
+          },
+          itemStyle: {
+            color: "#F59E0B",
+          },
+        },
+        {
+          name: "Rejected",
+          type: "line",
+          stack: "Status",
+          data: [10, 8, 9, 16, 10, 30, 20],
+          smooth: true,
+          lineStyle: {
+            width: 2,
+            color: "#EF4444",
+          },
+          itemStyle: {
+            color: "#EF4444",
+          },
+        },
+      ],
+    };
+    option && myChart.setOption(option);
+  };
+  // Initialize amount distribution chart
+  const initAmountChart = () => {
+    const chartDom = document.getElementById("amount-chart");
+    if (!chartDom) return;
+    const myChart = echarts.init(chartDom);
+    const option = {
+      animation: false,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: {
+          type: "shadow",
+        },
+      },
+      grid: {
+        left: "3%",
+        right: "4%",
+        bottom: "15%",
+        top: "3%",
+        containLabel: true,
+      },
+      xAxis: [
+        {
+          type: "category",
+          data: [
+            "Medical",
+            "Surgical",
+            "Dental",
+            "Vision",
+            "Diagnostic",
+            "Preventive",
+            "Other",
+          ],
+          axisTick: {
+            alignWithLabel: true,
+          },
+        },
+      ],
+      yAxis: [
+        {
+          type: "value",
+          name: "Amount ($)",
+        },
+      ],
+      series: [
+        {
+          name: "Total Amount",
+          type: "bar",
+          barWidth: "60%",
+          data: [
+            { value: 58000, itemStyle: { color: "#6366F1" } },
+            { value: 42000, itemStyle: { color: "#8B5CF6" } },
+            { value: 25000, itemStyle: { color: "#EC4899" } },
+            { value: 18000, itemStyle: { color: "#F97316" } },
+            { value: 35000, itemStyle: { color: "#14B8A6" } },
+            { value: 22000, itemStyle: { color: "#84CC16" } },
+            { value: 15000, itemStyle: { color: "#9CA3AF" } },
+          ],
+        },
+      ],
+    };
+    option && myChart.setOption(option);
+  };
+  // Initialize processing time chart
+  const initProcessingTimeChart = () => {
+    const chartDom = document.getElementById("processing-time-chart");
+    if (!chartDom) return;
+    const myChart = echarts.init(chartDom);
+    // Generate some scatter data
+    const data = [];
+    for (let i = 0; i < 50; i++) {
+      const claimSize = Math.random() * 4000 + 1000;
+      const processingTime = Math.random() * 72 + 12;
+      const status =
+        Math.random() > 0.7
+          ? "rejected"
+          : Math.random() > 0.4
+            ? "pending"
+            : "approved";
+      let color;
+      if (status === "approved") color = "#10B981";
+      else if (status === "pending") color = "#F59E0B";
+      else color = "#EF4444";
+      data.push([claimSize, processingTime, status, color]);
+    }
+    const option = {
+      animation: false,
+      grid: {
+        left: "3%",
+        right: "4%",
+        bottom: "15%",
+        top: "10%",
+        containLabel: true,
+      },
+      tooltip: {
+        trigger: "item",
+        formatter: function (params: any) {
+          return `Claim Amount: $${params.value[0].toFixed(2)}<br/>Processing Time: ${params.value[1].toFixed(1)} hours<br/>Status: ${params.value[2]}`;
+        },
+      },
+      xAxis: {
+        name: "Claim Amount ($)",
+        nameLocation: "middle",
+        nameGap: 30,
+        type: "value",
+      },
+      yAxis: {
+        name: "Processing Time (hours)",
+        nameLocation: "middle",
+        nameGap: 30,
+        type: "value",
+      },
+      legend: {
+        data: ["Approved", "Pending", "Rejected"],
+        bottom: 0,
+      },
+      series: [
+        {
+          name: "Approved",
+          type: "scatter",
+          symbolSize: 10,
+          data: data
+            .filter((item) => item[2] === "approved")
+            .map((item) => [item[0], item[1]]),
+          itemStyle: {
+            color: "#10B981",
+          },
+        },
+        {
+          name: "Pending",
+          type: "scatter",
+          symbolSize: 10,
+          data: data
+            .filter((item) => item[2] === "pending")
+            .map((item) => [item[0], item[1]]),
+          itemStyle: {
+            color: "#F59E0B",
+          },
+        },
+        {
+          name: "Rejected",
+          type: "scatter",
+          symbolSize: 10,
+          data: data
+            .filter((item) => item[2] === "rejected")
+            .map((item) => [item[0], item[1]]),
+          itemStyle: {
+            color: "#EF4444",
+          },
+        },
+      ],
+    };
+    option && myChart.setOption(option);
+  };
+  // Handle date range change
+  const handleDateRangeChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "start" | "end",
+  ) => {
+    setDateRange((prev) => ({
+      ...prev,
+      [type]: e.target.value,
+    }));
+  };
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm fixed top-0 left-0 right-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 flex items-center">
+                <img
+                  className="h-8 w-auto"
+                  src="https://readdy.ai/api/search-image?query=A%252520modern%25252C%252520minimalist%252520healthcare%252520logo%252520with%252520a%252520blue%252520and%252520teal%252520color%252520scheme%25252C%252520featuring%252520a%252520stylized%252520medical%252520cross%252520or%252520caduceus%252520symbol%252520integrated%252520with%252520a%252520shield%252520or%252520protective%252520element%25252C%252520suitable%252520for%252520a%252520healthcare%252520claims%252520management%252520system&width=200&height=80&seq=logo1&orientation=landscape"
+                  alt="Healthcare Claims Management"
+                />
+                <span className="ml-2 text-lg font-semibold text-gray-900">
+                  ClaimsPro
+                </span>
+              </div>
+              <nav className="ml-6 flex space-x-8">
+                <a
+                  href="https://readdy.ai/home/05c949dc-8c27-4326-acdb-c32485d3bc67/3c98454b-7c94-4c48-a77d-0774227525af"
+                  data-readdy="true"
+                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium cursor-pointer"
+                >
+                  Dashboard
+                </a>
+                <a
+                  href="https://readdy.ai/home/05c949dc-8c27-4326-acdb-c32485d3bc67/55e4f658-5d14-4dcd-bd63-ca1bbc2dfe9c"
+                  data-readdy="true"
+                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium cursor-pointer"
+                >
+                  Claims
+                </a>
+                <a
+                  href="#"
+                  className="border-b-2 border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 text-sm font-medium cursor-pointer"
+                >
+                  Reports
+                </a>
+                <a
+                  href="https://readdy.ai/home/05c949dc-8c27-4326-acdb-c32485d3bc67/14175283-a725-4f0b-8576-d1fd3f13cd28"
+                  data-readdy="true"
+                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium cursor-pointer"
+                >
+                  Settings
+                </a>
+              </nav>
+            </div>
+            <div className="flex items-center">
+              <div className="w-full max-w-lg lg:max-w-xs relative">
+                <label htmlFor="search" className="sr-only">
+                  Search
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i className="fas fa-search text-gray-400 text-sm"></i>
+                  </div>
+                  <input
+                    id="search"
+                    name="search"
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="Search reports, metrics, analytics..."
+                    type="search"
+                  />
+                </div>
+              </div>
+              <div className="ml-4 flex items-center md:ml-6">
+                {/* Notifications dropdown */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+                    onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                  >
+                    <span className="sr-only">View notifications</span>
+                    <i className="fas fa-bell"></i>
+                    <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500"></span>
+                  </button>
+                  {isNotificationsOpen && (
+                    <div className="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-20">
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <h3 className="text-sm font-medium text-gray-900">
+                          Notifications
+                        </h3>
+                      </div>
+                      <div className="max-h-60 overflow-y-auto">
+                        <a
+                          href="#"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                        >
+                          <p className="font-medium">Monthly report ready</p>
+                          <p className="text-xs text-gray-500">
+                            May 2025 Claims Report - 10 minutes ago
+                          </p>
+                        </a>
+                        <a
+                          href="#"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                        >
+                          <p className="font-medium">Analytics updated</p>
+                          <p className="text-xs text-gray-500">
+                            Dashboard metrics refreshed - 1 hour ago
+                          </p>
+                        </a>
+                        <a
+                          href="#"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                        >
+                          <p className="font-medium">
+                            Scheduled report completed
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Weekly claims summary - 2 hours ago
+                          </p>
+                        </a>
+                      </div>
+                      <div className="px-4 py-2 border-t border-gray-100 text-center">
+                        <a
+                          href="#"
+                          className="text-xs text-indigo-600 hover:text-indigo-500 cursor-pointer"
+                        >
+                          View all notifications
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Profile dropdown */}
+                <div className="ml-3 relative">
+                  <div>
+                    <button
+                      type="button"
+                      className="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+                      onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    >
+                      <span className="sr-only">Open user menu</span>
+                      <img
+                        className="h-8 w-8 rounded-full"
+                        src="https://readdy.ai/api/search-image?query=Professional%252520headshot%252520of%252520a%252520healthcare%252520administrator%25252C%252520business%252520professional%252520with%252520a%252520friendly%252520expression%25252C%252520wearing%252520business%252520attire%25252C%252520neutral%252520background%25252C%252520high%252520quality%252520portrait&width=100&height=100&seq=user1&orientation=squarish"
+                        alt="User profile"
+                      />
+                    </button>
+                  </div>
+                  {isUserMenuOpen && (
+                    <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-20">
+                      <a
+                        href="#"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                      >
+                        Your Profile
+                      </a>
+                      <a
+                        href="#"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                      >
+                        Settings
+                      </a>
+                      <a
+                        href="#"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                      >
+                        Sign out
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main className="pt-16 pb-10 min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Page Header with Breadcrumbs */}
+          <div className="py-6">
+            <div className="flex items-center text-sm text-gray-500 mb-4">
+              <a
+                href="https://readdy.ai/home/05c949dc-8c27-4326-acdb-c32485d3bc67/3c98454b-7c94-4c48-a77d-0774227525af"
+                data-readdy="true"
+                className="hover:text-indigo-600 cursor-pointer"
+              >
+                Dashboard
+              </a>
+              <i className="fas fa-chevron-right mx-2 text-xs"></i>
+              <span className="text-gray-700">Reports & Analytics</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900">
+                  Reports & Analytics
+                </h1>
+                <p className="mt-1 text-sm text-gray-500">
+                  Analyze claims data, generate reports, and visualize key
+                  metrics.
+                </p>
+              </div>
+              <div className="flex space-x-3">
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+                    onClick={() =>
+                      setIsExportDropdownOpen(!isExportDropdownOpen)
+                    }
+                  >
+                    <i className="fas fa-download mr-2"></i>
+                    Export Report
+                    <i className="fas fa-chevron-down ml-2"></i>
+                  </button>
+                  {isExportDropdownOpen && (
+                    <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                      <div
+                        className="py-1"
+                        role="menu"
+                        aria-orientation="vertical"
+                      >
+                        <button
+                          className="text-gray-700 block px-4 py-2 text-sm w-full text-left hover:bg-gray-100 cursor-pointer"
+                          onClick={() => setSelectedExportFormat("pdf")}
+                        >
+                          <i className="fas fa-file-pdf mr-2 text-red-600"></i>
+                          Export to PDF
+                        </button>
+                        <button
+                          className="text-gray-700 block px-4 py-2 text-sm w-full text-left hover:bg-gray-100 cursor-pointer"
+                          onClick={() => setSelectedExportFormat("excel")}
+                        >
+                          <i className="fas fa-file-excel mr-2 text-green-600"></i>
+                          Export to Excel
+                        </button>
+                        <button
+                          className="text-gray-700 block px-4 py-2 text-sm w-full text-left hover:bg-gray-100 cursor-pointer"
+                          onClick={() => setSelectedExportFormat("csv")}
+                        >
+                          <i className="fas fa-file-csv mr-2 text-blue-600"></i>
+                          Export to CSV
+                        </button>
+                        <div className="border-t border-gray-100 my-1"></div>
+                        <button className="text-gray-700 block px-4 py-2 text-sm w-full text-left hover:bg-gray-100 cursor-pointer">
+                          <i className="fas fa-envelope mr-2 text-indigo-600"></i>
+                          Email Report
+                        </button>
+                        <button className="text-gray-700 block px-4 py-2 text-sm w-full text-left hover:bg-gray-100 cursor-pointer">
+                          <i className="fas fa-print mr-2 text-gray-600"></i>
+                          Print Report
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+                >
+                  <i className="fas fa-plus mr-2"></i>
+                  New Report
+                </button>
+              </div>
+            </div>
+          </div>
+          {/* Report Tabs */}
+          <div className="bg-white shadow rounded-lg mb-6">
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+                <button
+                  onClick={() => setActiveTab("overview")}
+                  className={`${
+                    activeTab === "overview"
+                      ? "border-indigo-500 text-indigo-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm cursor-pointer`}
+                >
+                  <i className="fas fa-chart-pie mr-2"></i>
+                  Dashboard Overview
+                </button>
+                <button
+                  onClick={() => setActiveTab("claims-analytics")}
+                  className={`${
+                    activeTab === "claims-analytics"
+                      ? "border-indigo-500 text-indigo-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm cursor-pointer`}
+                >
+                  <i className="fas fa-chart-line mr-2"></i>
+                  Claims Analytics
+                </button>
+                <button
+                  onClick={() => setActiveTab("financial")}
+                  className={`${
+                    activeTab === "financial"
+                      ? "border-indigo-500 text-indigo-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm cursor-pointer`}
+                >
+                  <i className="fas fa-dollar-sign mr-2"></i>
+                  Financial Reports
+                </button>
+                <button
+                  onClick={() => setActiveTab("performance")}
+                  className={`${
+                    activeTab === "performance"
+                      ? "border-indigo-500 text-indigo-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm cursor-pointer`}
+                >
+                  <i className="fas fa-tachometer-alt mr-2"></i>
+                  Performance Metrics
+                </button>
+                <button
+                  onClick={() => setActiveTab("custom")}
+                  className={`${
+                    activeTab === "custom"
+                      ? "border-indigo-500 text-indigo-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm cursor-pointer`}
+                >
+                  <i className="fas fa-cog mr-2"></i>
+                  Custom Reports
+                </button>
+              </nav>
+            </div>
+          </div>
+          {/* Filters and Date Range */}
+          <div className="bg-white shadow rounded-lg mb-6">
+            <div className="px-4 py-5 sm:p-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+                {/* Date Range Filter */}
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2">
+                    <label
+                      htmlFor="date-from"
+                      className="text-sm text-gray-500"
+                    >
+                      From:
+                    </label>
+                    <input
+                      type="date"
+                      id="date-from"
+                      className="border border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                      value={dateRange.start}
+                      onChange={(e) => handleDateRangeChange(e, "start")}
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <label htmlFor="date-to" className="text-sm text-gray-500">
+                      To:
+                    </label>
+                    <input
+                      type="date"
+                      id="date-to"
+                      className="border border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                      value={dateRange.end}
+                      onChange={(e) => handleDateRangeChange(e, "end")}
+                    />
+                  </div>
+                  <button className="text-sm text-indigo-600 hover:text-indigo-500 cursor-pointer">
+                    Apply
+                  </button>
+                </div>
+                {/* Quick Date Presets */}
+                <div className="flex space-x-2">
+                  <button className="px-3 py-1 text-xs font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 !rounded-button whitespace-nowrap cursor-pointer">
+                    Today
+                  </button>
+                  <button className="px-3 py-1 text-xs font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 !rounded-button whitespace-nowrap cursor-pointer">
+                    This Week
+                  </button>
+                  <button className="px-3 py-1 text-xs font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 !rounded-button whitespace-nowrap cursor-pointer">
+                    This Month
+                  </button>
+                  <button className="px-3 py-1 text-xs font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 !rounded-button whitespace-nowrap cursor-pointer">
+                    Last Quarter
+                  </button>
+                  <button className="px-3 py-1 text-xs font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 !rounded-button whitespace-nowrap cursor-pointer">
+                    Year to Date
+                  </button>
+                </div>
+                {/* Advanced Filters */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+                    onClick={() =>
+                      setIsFilterDropdownOpen(!isFilterDropdownOpen)
+                    }
+                  >
+                    <i className="fas fa-filter mr-2"></i>
+                    Filters
+                    <i className="fas fa-chevron-down ml-2"></i>
+                  </button>
+                  {isFilterDropdownOpen && (
+                    <div className="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                      <div className="p-4">
+                        <h4 className="text-sm font-medium text-gray-900 mb-3">
+                          Filter Reports
+                        </h4>
+                        <div className="space-y-4">
+                          <div>
+                            <label
+                              htmlFor="filter-status"
+                              className="block text-sm font-medium text-gray-700 mb-1"
+                            >
+                              Claim Status
+                            </label>
+                            <select
+                              id="filter-status"
+                              className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                              value={filterStatus}
+                              onChange={(e) => setFilterStatus(e.target.value)}
+                            >
+                              <option value="all">All Statuses</option>
+                              <option value="approved">Approved</option>
+                              <option value="pending">Pending</option>
+                              <option value="rejected">Rejected</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label
+                              htmlFor="filter-type"
+                              className="block text-sm font-medium text-gray-700 mb-1"
+                            >
+                              Claim Type
+                            </label>
+                            <select
+                              id="filter-type"
+                              className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                              value={filterType}
+                              onChange={(e) => setFilterType(e.target.value)}
+                            >
+                              <option value="all">All Types</option>
+                              <option value="medical">Medical</option>
+                              <option value="dental">Dental</option>
+                              <option value="vision">Vision</option>
+                              <option value="surgical">Surgical</option>
+                              <option value="diagnostic">Diagnostic</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label
+                              htmlFor="filter-provider"
+                              className="block text-sm font-medium text-gray-700 mb-1"
+                            >
+                              Insurance Provider
+                            </label>
+                            <select
+                              id="filter-provider"
+                              className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                              value={filterProvider}
+                              onChange={(e) =>
+                                setFilterProvider(e.target.value)
+                              }
+                            >
+                              <option value="all">All Providers</option>
+                              <option value="blue-cross">Blue Cross</option>
+                              <option value="aetna">Aetna</option>
+                              <option value="united-health">
+                                United Health
+                              </option>
+                              <option value="cigna">Cigna</option>
+                              <option value="medicare">Medicare</option>
+                            </select>
+                          </div>
+                          <div className="flex justify-end space-x-3 pt-2">
+                            <button
+                              type="button"
+                              className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+                              onClick={() => setIsFilterDropdownOpen(false)}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+                            >
+                              Apply Filters
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Dashboard Overview */}
+          {activeTab === "overview" && (
+            <div>
+              {/* Summary Statistics Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div className="px-4 py-5 sm:p-6">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 bg-indigo-100 rounded-md p-3">
+                        <i className="fas fa-file-medical text-indigo-600 text-xl"></i>
+                      </div>
+                      <div className="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt className="text-sm font-medium text-gray-500 truncate">
+                            Total Claims
+                          </dt>
+                          <dd className="flex items-baseline">
+                            <div className="text-2xl font-semibold text-gray-900">
+                              1,248
+                            </div>
+                            <div className="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                              <i className="fas fa-arrow-up"></i>
+                              <span className="sr-only">Increased by</span>
+                              8.2%
+                            </div>
+                          </dd>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div className="px-4 py-5 sm:p-6">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 bg-green-100 rounded-md p-3">
+                        <i className="fas fa-check-circle text-green-600 text-xl"></i>
+                      </div>
+                      <div className="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt className="text-sm font-medium text-gray-500 truncate">
+                            Approval Rate
+                          </dt>
+                          <dd className="flex items-baseline">
+                            <div className="text-2xl font-semibold text-gray-900">
+                              76.4%
+                            </div>
+                            <div className="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                              <i className="fas fa-arrow-up"></i>
+                              <span className="sr-only">Increased by</span>
+                              3.2%
+                            </div>
+                          </dd>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div className="px-4 py-5 sm:p-6">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 bg-blue-100 rounded-md p-3">
+                        <i className="fas fa-dollar-sign text-blue-600 text-xl"></i>
+                      </div>
+                      <div className="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt className="text-sm font-medium text-gray-500 truncate">
+                            Total Amount
+                          </dt>
+                          <dd className="flex items-baseline">
+                            <div className="text-2xl font-semibold text-gray-900">
+                              $1.2M
+                            </div>
+                            <div className="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                              <i className="fas fa-arrow-up"></i>
+                              <span className="sr-only">Increased by</span>
+                              12.5%
+                            </div>
+                          </dd>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div className="px-4 py-5 sm:p-6">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 bg-yellow-100 rounded-md p-3">
+                        <i className="fas fa-clock text-yellow-600 text-xl"></i>
+                      </div>
+                      <div className="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt className="text-sm font-medium text-gray-500 truncate">
+                            Avg. Processing Time
+                          </dt>
+                          <dd className="flex items-baseline">
+                            <div className="text-2xl font-semibold text-gray-900">
+                              24.8h
+                            </div>
+                            <div className="ml-2 flex items-baseline text-sm font-semibold text-red-600">
+                              <i className="fas fa-arrow-up"></i>
+                              <span className="sr-only">Increased by</span>
+                              1.5%
+                            </div>
+                          </dd>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Charts Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Claims by Status Chart */}
+                <div className="bg-white shadow rounded-lg overflow-hidden">
+                  <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      Claims by Status
+                    </h3>
+                  </div>
+                  <div className="px-4 py-5 sm:p-6">
+                    <div
+                      id="status-chart"
+                      className="chart-container h-80"
+                    ></div>
+                  </div>
+                </div>
+                {/* Claims Trend Chart */}
+                <div className="bg-white shadow rounded-lg overflow-hidden">
+                  <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      Claims Trend
+                    </h3>
+                  </div>
+                  <div className="px-4 py-5 sm:p-6">
+                    <div
+                      id="trend-chart"
+                      className="chart-container h-80"
+                    ></div>
+                  </div>
+                </div>
+                {/* Amount Distribution Chart */}
+                <div className="bg-white shadow rounded-lg overflow-hidden">
+                  <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      Amount by Claim Type
+                    </h3>
+                  </div>
+                  <div className="px-4 py-5 sm:p-6">
+                    <div
+                      id="amount-chart"
+                      className="chart-container h-80"
+                    ></div>
+                  </div>
+                </div>
+                {/* Processing Time Analysis Chart */}
+                <div className="bg-white shadow rounded-lg overflow-hidden">
+                  <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      Processing Time vs. Claim Size
+                    </h3>
+                  </div>
+                  <div className="px-4 py-5 sm:p-6">
+                    <div
+                      id="processing-time-chart"
+                      className="chart-container h-80"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              {/* Recent Reports */}
+              <div className="bg-white shadow rounded-lg overflow-hidden mb-6">
+                <div className="px-4 py-5 sm:px-6 border-b border-gray-200 flex justify-between items-center">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Recent Reports
+                  </h3>
+                  <a
+                    href="#"
+                    className="text-sm font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer"
+                  >
+                    View All Reports
+                  </a>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          Report Name
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          Type
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          Created
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          Status
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      <tr>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          May 2025 Claims Summary
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                            Monthly
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          June 10, 2025
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Completed
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end space-x-2">
+                            <button className="text-indigo-600 hover:text-indigo-900 cursor-pointer">
+                              <i className="fas fa-eye"></i>
+                            </button>
+                            <button className="text-indigo-600 hover:text-indigo-900 cursor-pointer">
+                              <i className="fas fa-download"></i>
+                            </button>
+                            <button className="text-indigo-600 hover:text-indigo-900 cursor-pointer">
+                              <i className="fas fa-share-alt"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          Q2 2025 Financial Analysis
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            Quarterly
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          June 8, 2025
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Completed
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end space-x-2">
+                            <button className="text-indigo-600 hover:text-indigo-900 cursor-pointer">
+                              <i className="fas fa-eye"></i>
+                            </button>
+                            <button className="text-indigo-600 hover:text-indigo-900 cursor-pointer">
+                              <i className="fas fa-download"></i>
+                            </button>
+                            <button className="text-indigo-600 hover:text-indigo-900 cursor-pointer">
+                              <i className="fas fa-share-alt"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          Claim Processing Efficiency Report
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            Custom
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          June 5, 2025
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Completed
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end space-x-2">
+                            <button className="text-indigo-600 hover:text-indigo-900 cursor-pointer">
+                              <i className="fas fa-eye"></i>
+                            </button>
+                            <button className="text-indigo-600 hover:text-indigo-900 cursor-pointer">
+                              <i className="fas fa-download"></i>
+                            </button>
+                            <button className="text-indigo-600 hover:text-indigo-900 cursor-pointer">
+                              <i className="fas fa-share-alt"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          Provider Performance Analysis
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                            Monthly
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          June 3, 2025
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Completed
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end space-x-2">
+                            <button className="text-indigo-600 hover:text-indigo-900 cursor-pointer">
+                              <i className="fas fa-eye"></i>
+                            </button>
+                            <button className="text-indigo-600 hover:text-indigo-900 cursor-pointer">
+                              <i className="fas fa-download"></i>
+                            </button>
+                            <button className="text-indigo-600 hover:text-indigo-900 cursor-pointer">
+                              <i className="fas fa-share-alt"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          Rejected Claims Analysis
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Ad-hoc
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          June 1, 2025
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Completed
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end space-x-2">
+                            <button className="text-indigo-600 hover:text-indigo-900 cursor-pointer">
+                              <i className="fas fa-eye"></i>
+                            </button>
+                            <button className="text-indigo-600 hover:text-indigo-900 cursor-pointer">
+                              <i className="fas fa-download"></i>
+                            </button>
+                            <button className="text-indigo-600 hover:text-indigo-900 cursor-pointer">
+                              <i className="fas fa-share-alt"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Custom Report Generator */}
+          {activeTab === "custom" && (
+            <div className="bg-white shadow rounded-lg overflow-hidden">
+              <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  Generate Custom Report
+                </h3>
+                <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                  Select parameters and options to create a customized report.
+                </p>
+              </div>
+              <div className="px-4 py-5 sm:p-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Left Column: Report Template Selection */}
+                  <div className="md:col-span-1">
+                    <h4 className="text-sm font-medium text-gray-900 mb-4">
+                      Report Template
+                    </h4>
+                    <div className="space-y-4">
+                      <div className="relative flex items-start">
+                        <div className="flex items-center h-5">
+                          <input
+                            id="claims-summary"
+                            name="report-template"
+                            type="radio"
+                            className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 cursor-pointer"
+                            checked={
+                              selectedReportTemplate === "claims-summary"
+                            }
+                            onChange={() =>
+                              setSelectedReportTemplate("claims-summary")
+                            }
+                          />
+                        </div>
+                        <div className="ml-3 text-sm">
+                          <label
+                            htmlFor="claims-summary"
+                            className="font-medium text-gray-700 cursor-pointer"
+                          >
+                            Claims Summary
+                          </label>
+                          <p className="text-gray-500">
+                            Overview of all claims with status breakdown
+                          </p>
+                        </div>
+                      </div>
+                      <div className="relative flex items-start">
+                        <div className="flex items-center h-5">
+                          <input
+                            id="financial-analysis"
+                            name="report-template"
+                            type="radio"
+                            className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 cursor-pointer"
+                            checked={
+                              selectedReportTemplate === "financial-analysis"
+                            }
+                            onChange={() =>
+                              setSelectedReportTemplate("financial-analysis")
+                            }
+                          />
+                        </div>
+                        <div className="ml-3 text-sm">
+                          <label
+                            htmlFor="financial-analysis"
+                            className="font-medium text-gray-700 cursor-pointer"
+                          >
+                            Financial Analysis
+                          </label>
+                          <p className="text-gray-500">
+                            Detailed financial metrics and trends
+                          </p>
+                        </div>
+                      </div>
+                      <div className="relative flex items-start">
+                        <div className="flex items-center h-5">
+                          <input
+                            id="provider-performance"
+                            name="report-template"
+                            type="radio"
+                            className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 cursor-pointer"
+                            checked={
+                              selectedReportTemplate === "provider-performance"
+                            }
+                            onChange={() =>
+                              setSelectedReportTemplate("provider-performance")
+                            }
+                          />
+                        </div>
+                        <div className="ml-3 text-sm">
+                          <label
+                            htmlFor="provider-performance"
+                            className="font-medium text-gray-700 cursor-pointer"
+                          >
+                            Provider Performance
+                          </label>
+                          <p className="text-gray-500">
+                            Analysis of claims by healthcare provider
+                          </p>
+                        </div>
+                      </div>
+                      <div className="relative flex items-start">
+                        <div className="flex items-center h-5">
+                          <input
+                            id="processing-efficiency"
+                            name="report-template"
+                            type="radio"
+                            className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 cursor-pointer"
+                            checked={
+                              selectedReportTemplate === "processing-efficiency"
+                            }
+                            onChange={() =>
+                              setSelectedReportTemplate("processing-efficiency")
+                            }
+                          />
+                        </div>
+                        <div className="ml-3 text-sm">
+                          <label
+                            htmlFor="processing-efficiency"
+                            className="font-medium text-gray-700 cursor-pointer"
+                          >
+                            Processing Efficiency
+                          </label>
+                          <p className="text-gray-500">
+                            Metrics on claim processing times and bottlenecks
+                          </p>
+                        </div>
+                      </div>
+                      <div className="relative flex items-start">
+                        <div className="flex items-center h-5">
+                          <input
+                            id="custom-report"
+                            name="report-template"
+                            type="radio"
+                            className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 cursor-pointer"
+                            checked={selectedReportTemplate === "custom-report"}
+                            onChange={() =>
+                              setSelectedReportTemplate("custom-report")
+                            }
+                          />
+                        </div>
+                        <div className="ml-3 text-sm">
+                          <label
+                            htmlFor="custom-report"
+                            className="font-medium text-gray-700 cursor-pointer"
+                          >
+                            Custom Report
+                          </label>
+                          <p className="text-gray-500">
+                            Build a report with custom fields and metrics
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Middle Column: Report Parameters */}
+                  <div className="md:col-span-1">
+                    <h4 className="text-sm font-medium text-gray-900 mb-4">
+                      Report Parameters
+                    </h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label
+                          htmlFor="report-name"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Report Name
+                        </label>
+                        <input
+                          type="text"
+                          name="report-name"
+                          id="report-name"
+                          className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                          placeholder="Enter report name"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="report-description"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Description (Optional)
+                        </label>
+                        <textarea
+                          id="report-description"
+                          name="report-description"
+                          rows={3}
+                          className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-300 rounded-md"
+                          placeholder="Enter report description"
+                        ></textarea>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="report-grouping"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Group By
+                        </label>
+                        <select
+                          id="report-grouping"
+                          name="report-grouping"
+                          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        >
+                          <option>Status</option>
+                          <option>Claim Type</option>
+                          <option>Provider</option>
+                          <option>Insurance</option>
+                          <option>Date (Weekly)</option>
+                          <option>Date (Monthly)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Include Charts
+                        </label>
+                        <div className="mt-2 space-y-2">
+                          <div className="flex items-center">
+                            <input
+                              id="charts-pie"
+                              name="charts-pie"
+                              type="checkbox"
+                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                              defaultChecked
+                            />
+                            <label
+                              htmlFor="charts-pie"
+                              className="ml-2 text-sm text-gray-700 cursor-pointer"
+                            >
+                              Pie/Donut Charts
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              id="charts-bar"
+                              name="charts-bar"
+                              type="checkbox"
+                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                              defaultChecked
+                            />
+                            <label
+                              htmlFor="charts-bar"
+                              className="ml-2 text-sm text-gray-700 cursor-pointer"
+                            >
+                              Bar/Column Charts
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              id="charts-line"
+                              name="charts-line"
+                              type="checkbox"
+                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                              defaultChecked
+                            />
+                            <label
+                              htmlFor="charts-line"
+                              className="ml-2 text-sm text-gray-700 cursor-pointer"
+                            >
+                              Line/Area Charts
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              id="charts-tables"
+                              name="charts-tables"
+                              type="checkbox"
+                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                              defaultChecked
+                            />
+                            <label
+                              htmlFor="charts-tables"
+                              className="ml-2 text-sm text-gray-700 cursor-pointer"
+                            >
+                              Data Tables
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Right Column: Export Options */}
+                  <div className="md:col-span-1">
+                    <h4 className="text-sm font-medium text-gray-900 mb-4">
+                      Export Options
+                    </h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Format
+                        </label>
+                        <div className="mt-2 space-y-2">
+                          <div className="flex items-center">
+                            <input
+                              id="format-pdf"
+                              name="format"
+                              type="radio"
+                              className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 cursor-pointer"
+                              checked={selectedExportFormat === "pdf"}
+                              onChange={() => setSelectedExportFormat("pdf")}
+                            />
+                            <label
+                              htmlFor="format-pdf"
+                              className="ml-2 text-sm text-gray-700 cursor-pointer"
+                            >
+                              PDF Document
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              id="format-excel"
+                              name="format"
+                              type="radio"
+                              className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 cursor-pointer"
+                              checked={selectedExportFormat === "excel"}
+                              onChange={() => setSelectedExportFormat("excel")}
+                            />
+                            <label
+                              htmlFor="format-excel"
+                              className="ml-2 text-sm text-gray-700 cursor-pointer"
+                            >
+                              Excel Spreadsheet
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              id="format-csv"
+                              name="format"
+                              type="radio"
+                              className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 cursor-pointer"
+                              checked={selectedExportFormat === "csv"}
+                              onChange={() => setSelectedExportFormat("csv")}
+                            />
+                            <label
+                              htmlFor="format-csv"
+                              className="ml-2 text-sm text-gray-700 cursor-pointer"
+                            >
+                              CSV File
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Delivery Options
+                        </label>
+                        <div className="mt-2 space-y-2">
+                          <div className="flex items-center">
+                            <input
+                              id="delivery-download"
+                              name="delivery-download"
+                              type="checkbox"
+                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                              defaultChecked
+                            />
+                            <label
+                              htmlFor="delivery-download"
+                              className="ml-2 text-sm text-gray-700 cursor-pointer"
+                            >
+                              Download Immediately
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              id="delivery-email"
+                              name="delivery-email"
+                              type="checkbox"
+                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                            />
+                            <label
+                              htmlFor="delivery-email"
+                              className="ml-2 text-sm text-gray-700 cursor-pointer"
+                            >
+                              Email Report
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              id="delivery-schedule"
+                              name="delivery-schedule"
+                              type="checkbox"
+                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                            />
+                            <label
+                              htmlFor="delivery-schedule"
+                              className="ml-2 text-sm text-gray-700 cursor-pointer"
+                            >
+                              Schedule Recurring Report
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Additional Options
+                        </label>
+                        <div className="mt-2 space-y-2">
+                          <div className="flex items-center">
+                            <input
+                              id="option-cover"
+                              name="option-cover"
+                              type="checkbox"
+                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                              defaultChecked
+                            />
+                            <label
+                              htmlFor="option-cover"
+                              className="ml-2 text-sm text-gray-700 cursor-pointer"
+                            >
+                              Include Cover Page
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              id="option-toc"
+                              name="option-toc"
+                              type="checkbox"
+                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                              defaultChecked
+                            />
+                            <label
+                              htmlFor="option-toc"
+                              className="ml-2 text-sm text-gray-700 cursor-pointer"
+                            >
+                              Include Table of Contents
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              id="option-page-numbers"
+                              name="option-page-numbers"
+                              type="checkbox"
+                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                              defaultChecked
+                            />
+                            <label
+                              htmlFor="option-page-numbers"
+                              className="ml-2 text-sm text-gray-700 cursor-pointer"
+                            >
+                              Include Page Numbers
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-8 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+                  >
+                    <i className="fas fa-save mr-2"></i>
+                    Save Template
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+                  >
+                    <i className="fas fa-eye mr-2"></i>
+                    Preview
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+                  >
+                    <i className="fas fa-file-alt mr-2"></i>
+                    Generate Report
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Placeholder for other tabs */}
+          {(activeTab === "claims-analytics" ||
+            activeTab === "financial" ||
+            activeTab === "performance") && (
+            <div className="bg-white shadow rounded-lg p-6 flex items-center justify-center h-96">
+              <div className="text-center">
+                <i className="fas fa-chart-line text-indigo-500 text-5xl mb-4"></i>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {activeTab === "claims-analytics"
+                    ? "Claims Analytics"
+                    : activeTab === "financial"
+                      ? "Financial Reports"
+                      : "Performance Metrics"}
+                </h3>
+                <p className="text-gray-500 max-w-md">
+                  This section is under development. Please check back soon for
+                  detailed{" "}
+                  {activeTab === "claims-analytics"
+                    ? "claims analytics"
+                    : activeTab === "financial"
+                      ? "financial reports"
+                      : "performance metrics"}
+                  .
+                </p>
+                <button
+                  type="button"
+                  className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 !rounded-button whitespace-nowrap cursor-pointer"
+                >
+                  <i className="fas fa-bell mr-2"></i>
+                  Notify Me When Available
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+      {/* Footer */}
+      <footer className="bg-white">
+        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 border-t border-gray-200">
+          <div className="md:flex md:items-center md:justify-between">
+            <div className="flex space-x-6 md:order-2">
+              <a
+                href="#"
+                className="text-gray-400 hover:text-gray-500 cursor-pointer"
+              >
+                <span className="sr-only">Documentation</span>
+                <i className="fas fa-book"></i>
+              </a>
+              <a
+                href="#"
+                className="text-gray-400 hover:text-gray-500 cursor-pointer"
+              >
+                <span className="sr-only">Support</span>
+                <i className="fas fa-question-circle"></i>
+              </a>
+              <a
+                href="#"
+                className="text-gray-400 hover:text-gray-500 cursor-pointer"
+              >
+                <span className="sr-only">GitHub</span>
+                <i className="fab fa-github"></i>
+              </a>
+            </div>
+            <div className="mt-8 md:mt-0 md:order-1">
+              <div className="flex items-center">
+                <p className="text-sm text-gray-500">
+                  &copy; 2025 Healthcare Claims Management System. All rights
+                  reserved.
+                </p>
+                <p className="ml-6 text-sm text-gray-500">
+                  <i className="fas fa-sync-alt mr-1"></i> Last synced: June 10,
+                  2025 14:32
+                </p>
+                <p className="ml-6 text-sm text-gray-500">
+                  <i className="fas fa-code-branch mr-1"></i> Version 2.4.1
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
+export default App;
